@@ -1,0 +1,75 @@
+---
+title: "Surviving the Titanic Disaster"
+subtitle: "A Machine Learning Application"
+author: "TI"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+The **Surviving the Titanic Disaster** app is a fun demonstration of random forests models. The app allows users to input basic information about a person, to see the probability of that individual surviving the disaster. The data used in this app is from a commonly used data set provided by [kaggel.com](kaggel.com). From their website's page on this data set:
+
+*The sinking of the Titanic is one of the most infamous shipwrecks in history.*
+
+*On April 15, 1912, during her maiden voyage, the widely considered "unsinkable" RMS Titanic sank after colliding with an iceberg. Unfortunately, there weren't enough lifeboats for everyone onboard, resulting in the death of 1502 out of 2224 passengers and crew.*
+
+*While there was some element of luck involved in surviving, it seems some groups of people were more likely to survive than others.*
+
+## The Data
+
+The data used in this app was the training data provided by Kaggle for the Titanic competition. While the original data set contains 12 variables, only four are being used to keep the user experience simple. Sex, class, and age were the variables used. Transformations were used to make the data usable, such as factorizing the survival, class, and sex of the individuals. An example output of what the data looks like is below. In total, there are 183 passengers that the model will be trained on.
+
+```{r, message = FALSE, warnings = FALSE}
+library(readr)
+library(dplyr)
+library(tidyverse)
+
+data <- read_csv("./train.csv")
+data <- data %>%
+    drop_na() %>%
+    transform(
+        Survived = as.factor(Survived),
+        Pclass = as.factor(Pclass),
+        Sex = as.factor(Sex)
+    ) %>% 
+    select(Survived, Pclass, Sex, Age)
+
+levels(data$Survived) = c("no", "yes")
+levels(data$Pclass) = c("low", "middle", "high")
+
+head(data)
+```
+
+## The Model
+
+A Random Forest model was selected as the algorithm to use to make the predictions of survival. This model was used due to it's high performance, even with limited data. Cross Validation was used to help tune the model, and class probabilities was turned on, to ensure that the probability of survival was provided.
+
+```{r, echo = TRUE, eval=TRUE, message=FALSE}
+library(caret)
+control <- trainControl(method = "cv", classProbs=TRUE)
+    
+mdl_rf <- train(
+    Survived ~ ., 
+    data = data, 
+    method = "rf", 
+    preProcess = c("center", "scale"),
+    trControl = control
+)
+```
+
+## Model Performance
+
+The model is moderately performing. With the low data points (183), and only used 3 of the 12 variables, the performance is as expected. In cross validation, the accuracy of the model on the training data was about 81%.
+
+Improving the model could be achieved by increasing the number of variables used in the training. However the trade off in accuracy, would be user experience on the front end. Lower accuracy is acceptable for the purposes of this application, in order create a simple front end application.
+
+The performance of the model is shown below.
+
+```{r}
+mdl_rf$results[3,]
+```
